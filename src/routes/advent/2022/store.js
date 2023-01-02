@@ -11,6 +11,8 @@ import day5Sample from './data/day5.sample.txt?raw'
 import day5Input from './data/day5.input.txt?raw'
 import day6Sample from './data/day6.sample.txt?raw'
 import day6Input from './data/day6.input.txt?raw'
+import day7Sample from './data/day7.sample.txt?raw'
+import day7Input from './data/day7.input.txt?raw'
 import solve1_1 from './solvers/day1_1'
 import solve1_2 from './solvers/day1_2'
 import solve2_1 from './solvers/day2_1'
@@ -23,6 +25,8 @@ import solve5_1 from './solvers/day5_1'
 import solve5_2 from './solvers/day5_2'
 import solve6_1 from './solvers/day6_1'
 import solve6_2 from './solvers/day6_2'
+import solve7_1 from './solvers/day7_1'
+import solve7_2 from './solvers/day7_2'
 
 // Hmm...   Code for inputs seem to be available at a url:
 // https://adventofcode.com/2022/day/1/input
@@ -106,6 +110,19 @@ export const store = readable({
       solvers: [
         { description: 'Part 1', solver: solve6_1 },
         { description: 'Part 2', solver: solve6_2 },
+      ]
+    },
+    {
+      description: '2022 Day 7',
+      pageUrl: 'https://adventofcode.com/2022/day/7',
+      inputUrl: 'https://adventofcode.com/2022/day/7/input',
+      inputs: [
+        { description: 'sample', data: day7Sample },
+        { description: 'input', data: day7Input },
+      ],
+      solvers: [
+        { description: 'Part 1', solver: solve7_1 },
+        { description: 'Part 2', solver: solve7_2 },
       ]
     },
   ]
