@@ -13,7 +13,16 @@ export default input => {
       if (ch !== ' ') stacks[i].unshift(ch)
     }
   })
-  return stacks
+
+  moverx = /move (\d+) from (\d+) to (\d+)/
+  moves.forEach(moveLine => {
+    var move = Array.from(moveLine.match(moverx)).slice(1).map(x => parseInt(x))
+    for (let i = 0; i < move[0]; i++) {
+      stacks[move[2] - 1].push(stacks[move[1] - 1].pop())
+    }
+  })
+
+  return stacks.map(x => x[x.length - 1]).join('')
 }
 
 /* Explanation: Day 5
