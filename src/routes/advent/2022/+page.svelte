@@ -3,10 +3,21 @@
 
   import { store } from './store'
 
+  let inputText = ""
+  let outputText = ""
+
   let days = $store.days
   let selectedDay = null
 
-  const selectDay = day => selectedDay = day
+  const selectDay = day => {
+    inputText = ""
+    outputText = ""
+    selectedDay = day
+    let sample = day.inputs.find(x => x.description === 'sample')
+    if (sample) {
+      selectInput(sample.data)
+    }
+  }
 
   const selectInput = text => inputText = text
 
@@ -16,11 +27,8 @@
   // const fetchInput = async url => inputText = await fetch(url).then(x => x.text())
 
   if (days?.length) {
-    selectDay(days[0])
+    selectDay(days[days.length - 1])
   }
-
-  let inputText = ""
-  let outputText = ""
 
 </script>
 
@@ -43,7 +51,13 @@
 
 {#if selectedDay}
 <section>
-  <h2>{ selectedDay.description }</h2>
+  <h2>
+    {#if selectedDay.pageUrl}
+      <a href={ selectedDay.pageUrl }>{ selectedDay.description }</a>
+    {:else}
+      { selectedDay.description }
+    {/if}
+  </h2>
 </section>
 
 <section class="two-column">
