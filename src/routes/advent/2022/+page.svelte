@@ -1,6 +1,7 @@
 <script>
   // @ts-nocheck
-  import { onMount } from 'svelte';
+  import { onMount } from 'svelte'
+  import { base } from '$app/paths'
 
   export const ssr = false
 
@@ -71,7 +72,7 @@
 
   <ul>
     {#each days as day}
-      <li on:click={ () => selectDay(day)} class="{ day === selectedDay ? 'active' : '' }">{ day.description }</li>
+      <li on:click={ () => selectDay(day)} on:keyup={ () => selectDay(day)} class="{ day === selectedDay ? 'active' : '' }">{ day.description }</li>
     {/each}
   </ul>
 </section>
@@ -80,7 +81,7 @@
 <section>
   <h2>
     {#if selectedDay.pageUrl}
-      <a href={ selectedDay.pageUrl }>{ selectedDay.description }</a>
+      <a href={ base + selectedDay.pageUrl }>{ selectedDay.description }</a>
     {:else}
       { selectedDay.description }
     {/if}
@@ -91,11 +92,11 @@
   <div class="left-column">
     <h3>Inputs</h3>
     {#if selectedDay.inputUrl}
-      <a style="display: block; text-align: center" target="_blank" href={selectedDay.inputUrl}>{ selectedDay.inputUrl }</a>
+      <a style="display: block; text-align: center" target="_blank" rel="noreferrer" href={selectedDay.inputUrl}>{ selectedDay.inputUrl }</a>
     {/if}
     <ul>
       {#each selectedDay.inputs as input }
-        <li on:click={ () => selectInput(input.data) }>{ input.description }</li>
+        <li on:click={ () => selectInput(input.data) } on:keyup={ () => selectInput(input.data)}>{ input.description }</li>
       {/each}
     </ul>
   </div>
@@ -103,7 +104,7 @@
     <h3>Solvers</h3>
     <ul>
       {#each selectedDay.solvers as solver }
-        <li on:click={ () => runSolver(solver.solver)}>{ solver.description }</li>
+        <li on:click={ () => runSolver(solver.solver)} on:keyup={ () => runSolver(solver.solver)}>{ solver.description }</li>
       {/each}
     </ul>
   </div>
