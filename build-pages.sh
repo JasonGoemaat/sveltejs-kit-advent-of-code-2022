@@ -4,9 +4,9 @@ git checkout -B github-pages
 
 pnpm run build
 
-mkdir docs
+rm -rf docs
 
-mv build/* docs
+mv build docs
 
 git add .
 
