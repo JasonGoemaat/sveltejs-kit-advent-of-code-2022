@@ -22,10 +22,40 @@ export default input => {
     return { minX, maxX }
   }
 
+  // create ranges for each sensor and sort by minX
   let ranges = sensors.map(x => getSensorRangesAtRow(x, ROW)).filter(x => x !== null)
   ranges.sort((a, b) => a.minX - b.minX ? a.minX - b.minX : a.maxX - b.maxX)
-  ranges = ranges.reduce()
-  return ranges
+
+  // join ranges that overlap
+  ranges = ranges.reduce((p, c) => {
+    if (p === null) return [c]
+    if (p[p.length - 1].maxX >= c.minX) {
+      p[p.length -1].maxX = Math.max(p[p.length - 1].maxX, c.maxX)
+    } else {
+      p.push(c)
+    }
+    return p
+  }, null)
+
+  // split ranges that have a beacon to exclude it
+  sensors.filter(sensor => sensor.by === ROW).forEach(sensor => {
+    let rIndex = ranges.findIndex(range => range.minX <= sensor.bx && range.maxX >= sensor.bx)
+    if (rIndex < 0) return
+    let original = ranges[rIndex]
+    // first, check for ends and just adjust range
+    if (original.minX === sensor.bx) {
+      original.minX++
+    } else if (original.maxX === sensor.bx) {
+      original.maxX--
+    } else {
+      let left = { minX: original.minX, maxX: sensor.bx - 1 }
+      let right = { minX: sensor.bx + 1, maxX: original.maxX }
+      ranges = ranges.slice(0, rIndex).concat([left, right].concat(ranges.slice(rIndex + 1)))
+    }
+  })
+  
+  // return ranges // debug
+  return ranges.reduce((p, c) => p + (c.maxX - c.minX + 1), 0)
 }
 
 
