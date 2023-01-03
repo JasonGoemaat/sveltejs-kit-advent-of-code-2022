@@ -1,7 +1,30 @@
 <script>
-// @ts-nocheck
+  // @ts-nocheck
+  import { onMount } from 'svelte';
+
+  export const ssr = false
 
   import { store } from './store'
+
+  let saveDay = null
+
+  onMount(async () => {
+    let savedDay = window?.localStorage ? window.localStorage.getItem('savedDay-2022') : null
+
+    saveDay = (day) => {
+      if (window.localStorage) window.localStorage.setItem('savedDay-2022', day.description)
+    }
+
+    if (days?.length) {
+      let last = days.find(day => day.description === savedDay)
+      if (last) {
+        selectDay(last)
+      } else {
+        selectDay(days[days.length - 1])
+      }
+    }
+  })
+
 
   let inputText = ""
   let outputText = ""
@@ -13,6 +36,8 @@
     inputText = ""
     outputText = ""
     selectedDay = day
+    if (saveDay) saveDay(day)
+    
     let sample = day.inputs.find(x => x.description === 'sample')
     if (sample) {
       selectInput(sample.data)
@@ -21,14 +46,16 @@
 
   const selectInput = text => inputText = text
 
-  const runSolver = fn => { outputText = JSON.stringify(fn(inputText.replaceAll(/\r/g, '')), null, 2) }
+  const runSolver = fn => {
+    const result = fn(inputText.replaceAll(/\r/g, ''))
+    if (typeof(result) === 'string' || typeof(result) === 'number') {
+      outputText = `${result}`
+      return
+    }
+    outputText = JSON.stringify(result, null, 2) }
 
   // doesn't work due to CORS
   // const fetchInput = async url => inputText = await fetch(url).then(x => x.text())
-
-  if (days?.length) {
-    selectDay(days[days.length - 1])
-  }
 
 </script>
 
