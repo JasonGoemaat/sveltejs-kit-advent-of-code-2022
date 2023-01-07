@@ -31,6 +31,7 @@ import day14Input from './data/day14.input.txt?raw'
 import day15Sample from './data/day15.sample.txt?raw'
 import day15Input from './data/day15.input.txt?raw'
 import day16Sample from './data/day16.sample.txt?raw'
+import day16Sample2 from './data/day16.sample.2.txt?raw'
 import day16Input from './data/day16.input.txt?raw'
 import day17Sample from './data/day17.sample.txt?raw'
 import day17Input from './data/day17.input.txt?raw'
@@ -313,6 +314,7 @@ export const store = readable({
       inputUrl: 'https://adventofcode.com/2022/day/16/input',
       inputs: [
         { description: 'sample', data: day16Sample },
+        { description: 'simple sample', data: day16Sample2 },
         { description: 'input', data: day16Input },
       ],
       solvers: [

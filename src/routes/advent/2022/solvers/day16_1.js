@@ -63,12 +63,26 @@ export default input => {
     action: 'Initial state'
   }
   let bestState = initialState
-  const stateQueue = [initialState]
+  const stateQueue = []
   let statesProcessed = 0
+
+  // keep track of 'best' states.  The key is current valve + closed valves, the
+  // value is production.   If we see a position that already exists we only
+  // add the new position if the production is higher
+  const bestStates = {}
+  const enqueueState = state => {
+    let key = `${state.position}${state.closed.join('')}`
+    if ((!bestStates[key]) || state.production > bestStates[key]) {
+      bestStates[key] = state.production
+      stateQueue.push(state)
+    }
+  }
+
+  enqueueState(initialState)
   while (stateQueue.length > 0) {
     const state = stateQueue.shift()
     if (state.position === 'JJ' && state.minute === 10 && state.production === 1326) {
-      console.log('Processing State: ' + getStateString(state))
+      // console.log('Processing State: ' + getStateString(state))
     }
 
     // console.log(`Processing ${getStateString(state)}`)
@@ -88,12 +102,12 @@ export default input => {
           parentState: state, // where we came from, for tracking
           action: `Minute ${state.minute}: open valve ${state.position} releasing ${flowRate} over ${minutes} for production ${newProduction} total ${state.production + newProduction}`,
         }
-        stateQueue.push(newState)
+        enqueueState(newState)
         // console.log(`    => ${getStateString(newState)}`)
         if (newState.position === 'JJ' && newState.minute === 10 && newState.production === 1326) {
-          console.log('statesProcessed: ', statesProcessed)
-          console.log('new state added: ' + getStateString(newState))
-          console.log('queue length: ', stateQueue.length)
+          // console.log('statesProcessed: ', statesProcessed)
+          // console.log('new state added: ' + getStateString(newState))
+          // console.log('queue length: ', stateQueue.length)
           window.stateQueue = [...stateQueue]
           window.valves = valves
           window.valvesById = valvesById
@@ -113,7 +127,7 @@ export default input => {
           parentState: state, // where we came from, for tracking
           action: `Minute ${state.minute}: move from ${state.position} to ${closedValveId} in ${movementCost} minute${movementCost !== 1 ? 's' : ''}`,
         }
-        stateQueue.push(newState)
+        enqueueState(newState)
         // console.log(`    => ${getStateString(newState)}`)
       }
     })
