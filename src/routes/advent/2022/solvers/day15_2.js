@@ -5,8 +5,32 @@ export default input => {
   const lines = input.split('\n').map(x => x.replace('\r', ''))
   const sensors = lines.map(line => {
     const matches = Array.from(line.match(/Sensor at x=([-\d]+), y=([-\d]+): closest beacon is at x=([-\d]+), y=([-\d]+)/)).slice(1).map(x => parseInt(x))
-    return { x: matches[0], y: matches[1], bx: matches[2], by: matches[3] }
+    const x = matches[0]
+    const y = matches[1]
+    const bx = matches[2]
+    const by = matches[3]
+    const extent = Math.abs(bx - x) + Math.abs(by - y)
+    const la = findLine(x, y - extent)
+    return { x, y, bx, by }
   })
+
+  const getSensorOutsideLineSegments = sensor => {
+    let dist = Math.abs(sensor.bx - sensor.x) + Math.abs(sensor.by - sensor.y)
+    var corners = [
+      [sensor.x, sensor.y - dist - 1],
+      [sensor.x + dist + 1, sensor.y],
+      [sensor.x, sensor.y + dist + 1],
+      [sensor.x - dist - 1, sensor.y],
+    ]
+    return [
+      { x1: corners[0][0], y1: corners[0][1], x2: corners[1][0], y2: corners[1][1] },
+      { x1: corners[1][0], y1: corners[1][1], x2: corners[2][0], y2: corners[2][1] },
+      { x1: corners[2][0], y1: corners[2][1], x2: corners[3][0], y2: corners[3][1] },
+      { x1: corners[3][0], y1: corners[3][1], x2: corners[0][0], y2: corners[0][1] },
+    ]
+  }
+
+  const outsideLineSegments = sensors.reduce((p, c) => [...p, ...getSensorOutsideLineSegments(c)], [])
 
   const getSensorRangesAtRow = (sensor, row) => {
     const distY = Math.abs(row - sensor.y)
@@ -59,25 +83,25 @@ export default input => {
 }
 
 
-/* Explanation: Day 15, Part 1
+/* Explanation: Day 15, Part 2
 
-We are given sensor locations and the closest beacon to that sensor.
-Each sensor finds the closest beacon using taxi distance (or manhattan
-distance) which is the sum of the absolute value deltas for x and y.
-This forms a diamond pattern.  For instance we can go up 10, or
-up 9 and left or right 1, or up 8 and left or right 2, etc.
+Here we can't look at a single row and use ranges:
 
-The goal is given a list of sensors and the closest beacon to each to
-eliminate areas on a certain row where there cannot be a beacon and
-return the total number of squares covered by sensors that have found
-another beacon.
+> the distress beacon must have x and y coordinates each no lower than 0 
+> and no larger than 4000000
 
-Coverages can overlap, so I think the best way would be to calculate a
-range for each beacon and combine those ranges.
+I think we need to find a single open space (should only be one?)
+in that range.  Then multiple the x and y of the found location and
+return the value.
 
-This is different than previous days in that a hidden input is used for
-the sample and a different hidden input is used for the actual puzzle
-input.   The sample is smaller, so we use row = 10, while the actual input
-uses row = 2000000
+The range contains over 4 million rows and columns, so ranges would be
+very slow.
+
+Since there should only be one spot, maybe we can look at the outsides
+of covered areas.  The single open spot should be where
+lines intersect.  So maybe we can create lines for the areas outside
+each of the sensor areas.  The open spots should be at the intersection
+of two of these lines.   We could then check each of these to see if they
+are inside any other sensor areas and remove them if they are.
 
 */

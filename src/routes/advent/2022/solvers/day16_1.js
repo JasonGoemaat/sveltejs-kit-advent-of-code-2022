@@ -1,11 +1,10 @@
 // @ts-nocheck
 export default input => {
+  console.clear()
   const lines = input.split('\n').map(x => x.replace('\r', ''))
   const rx = /Valve ([A-Z][A-Z]) has flow rate=([\d]+); tunnels? leads? to valves? (.*)/
   const distanceMaps = {}
-  const initialValves = lines.map(line => {
-    window.rx = rx
-    window.line = line
+  const valves = lines.map(line => {
     const arr = Array.from(line.match(rx)).slice(1)
     const valve = {
       id: arr[0],
@@ -17,24 +16,122 @@ export default input => {
     return valve
   })
 
-  const allValves = initialValves.reduce((p, c) => Object.assign(p, { [c.id]: c }), {})
-  initialValues.forEach(valve => {
-    const queue = [{ valve, distance: 0 }]
-    const visited = { [valve.id]: true}
+  const valvesById = valves.reduce((p, c) => Object.assign(p, { [c.id]: c }), {})
+
+  // Now we map how to get to each valve from each other valve.  The
+  // results is that a valve has the cost to get to it from each other
+  // valve along with the valve that leads to it.
+  // For example AA <-> DD <-> EE
+  //    AA: { 'EE': { valveId: 'DD', cost: 2 }, 'DD': { valveId: 'DD', cost: 1 }},
+  //    DD: { 'AA': { valveId: 'AA', cost: 1 }, 'EE': { valveId: 'EE', cost: 1 }},
+  //    EE: { 'AA': { valveId: 'DD', cost: 2 }, 'DD': { valveId: 'DD', cost: 1 }},
+  // So to get from EE to AA we look at EE and see AA is { valveId: 'DD', cost: 2 },
+  // which meansto get from EE you first go to DD and the trip will end up costing 2 minutes.
+  valves.forEach(valve => {
+    const queue = []
+    const paths = {}
+    queue.push( { valve, cost: 0 })
     while (queue.length > 0) {
       const current = queue.shift()
-      if (current.flowRate) {
-        valve.distance[current.valve.id] = current.distance + 1
-      }
-        current.connected.forEach(id => {
-          if (!visited[id]) {
-            queue.push({ valve: initialValves[id], distance: current.distance + 1 })
-          }
-        })
-      }
+      current.valve.connected.forEach(valveId => {
+        if (valveId != valve.id && !paths[valveId]) {
+          paths[valveId] = { valveId, cost: current.cost + 1 }
+          queue.push({ valve: valvesById[valveId], cost: current.cost + 1 })
+        }
+      })
     }
+    valve.paths = paths
   })
-  return allValves
+
+  /*
+  Now we start with an initial state where we start at 'AA' and there are no
+  open valves so the flow rate is 0.   From there we push new states onto our
+  queue and process them the same way.  When we process a state:
+
+  1. For each closed valve, push a new state where we either move to that valve,
+      or open the valve if it is the current position
+
+  */
+
+  const getStateString = state => `${state.position} at ${state.minute}: production ${state.production}, closed: ${JSON.stringify(state.closed)}`
+  const initialState = {
+    position: 'AA',
+    closed: valves.filter(valve => valve.flowRate > 0).map(valve => valve.id),
+    minute: 1,
+    production: 0,
+    parentState: null,
+    action: 'Initial state'
+  }
+  let bestState = initialState
+  const stateQueue = [initialState]
+  let statesProcessed = 0
+  while (stateQueue.length > 0) {
+    const state = stateQueue.shift()
+    if (state.position === 'JJ' && state.minute === 10 && state.production === 1326) {
+      console.log('Processing State: ' + getStateString(state))
+    }
+
+    // console.log(`Processing ${getStateString(state)}`)
+    if (state.production > bestState.production) bestState = state
+    if (state.minute > 29) continue // opening a valve at minute 30 does nothing
+    state.closed.forEach(closedValveId => {
+      if (closedValveId === state.position) {
+        // push new state from opening valve
+        const { flowRate } = valvesById[state.position]
+        const minutes = Math.max(0, 30 - state.minute)
+        const newProduction = flowRate * minutes
+        const newState = {
+          position: state.position, // not moving
+          closed: state.closed.filter(x => x !== state.position), // valve is now open
+          minute: state.minute + 1, // took us a minute to open the valve
+          production: state.production + newProduction, // add production from opening valve
+          parentState: state, // where we came from, for tracking
+          action: `Minute ${state.minute}: open valve ${state.position} releasing ${flowRate} over ${minutes} for production ${newProduction} total ${state.production + newProduction}`,
+        }
+        stateQueue.push(newState)
+        // console.log(`    => ${getStateString(newState)}`)
+        if (newState.position === 'JJ' && newState.minute === 10 && newState.production === 1326) {
+          console.log('statesProcessed: ', statesProcessed)
+          console.log('new state added: ' + getStateString(newState))
+          console.log('queue length: ', stateQueue.length)
+          window.stateQueue = [...stateQueue]
+          window.valves = valves
+          window.valvesById = valvesById
+          window.newState = newState
+        }
+        // this isn't getting processed for some reason:
+        // XXX  => JJ at 10: production 1326, closed: ["CC","EE","HH"]
+        // should move to HH and open HH at minute 17
+      } else {
+        // push new state from moving to the closed valve
+        const movementCost = valvesById[state.position].paths[closedValveId].cost
+        const newState = {
+          position: closedValveId, // moved to different valve that is closed
+          closed: [...state.closed], // not changing what valves are closed
+          minute: state.minute + movementCost, // takes us x minutes to move to new valve
+          production: state.production, // production not changed by moving
+          parentState: state, // where we came from, for tracking
+          action: `Minute ${state.minute}: move from ${state.position} to ${closedValveId} in ${movementCost} minute${movementCost !== 1 ? 's' : ''}`,
+        }
+        stateQueue.push(newState)
+        // console.log(`    => ${getStateString(newState)}`)
+      }
+    })
+
+    statesProcessed++
+  }
+
+  console.log('statesProcessed: ', statesProcessed)
+  console.log('queue length: ', stateQueue.length)
+
+  const actions = []
+  let st = bestState
+  while (st) {
+    actions.unshift(st.action || 'UNKNOWN')
+    st = st.parentState
+  }
+  actions.forEach(a => console.log(a))
+  return bestState;
 }
 
 /* Explanation: Day 16 Part 1
