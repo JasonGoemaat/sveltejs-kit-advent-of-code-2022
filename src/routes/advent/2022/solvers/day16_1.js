@@ -1,6 +1,7 @@
 // @ts-nocheck
 export default input => {
   console.clear()
+  const MINUTES = 30
   const lines = input.split('\n').map(x => x.replace('\r', ''))
   const rx = /Valve ([A-Z][A-Z]) has flow rate=([\d]+); tunnels? leads? to valves? (.*)/
   const distanceMaps = {}
@@ -63,80 +64,41 @@ export default input => {
     action: 'Initial state'
   }
   let bestState = initialState
-  const stateQueue = []
+  const stateQueue = [initialState]
   let statesProcessed = 0
 
-  // keep track of 'best' states.  The key is current valve + closed valves, the
-  // value is production.   If we see a position that already exists we only
-  // add the new position if the production is higher
-  const bestStates = {}
   const enqueueState = state => {
-    let key = `${state.position}${state.closed.join('')}`
-    if ((!bestStates[key]) || state.production > bestStates[key]) {
-      bestStates[key] = state.production
-      stateQueue.push(state)
-    }
+    stateQueue.push(state)
   }
 
-  enqueueState(initialState)
   while (stateQueue.length > 0) {
     const state = stateQueue.shift()
-    if (state.position === 'JJ' && state.minute === 10 && state.production === 1326) {
-      // console.log('Processing State: ' + getStateString(state))
-    }
+    // if (state.position === 'JJ' && state.minute === 10 && state.production === 1326) {
+    //   console.log('Processing State: ' + getStateString(state))
+    // }
 
-    // console.log(`Processing ${getStateString(state)}`)
     if (state.production > bestState.production) bestState = state
-    if (state.minute > 29) continue // opening a valve at minute 30 does nothing
+    if (state.minute > (MINUTES - 2)) continue // best case at 28 we move 1 to 29 and open to 30 for 1 turn
     state.closed.forEach(closedValveId => {
-      if (closedValveId === state.position) {
-        // push new state from opening valve
-        const { flowRate } = valvesById[state.position]
-        const minutes = Math.max(0, 30 - state.minute)
-        const newProduction = flowRate * minutes
-        const newState = {
-          position: state.position, // not moving
-          closed: state.closed.filter(x => x !== state.position), // valve is now open
-          minute: state.minute + 1, // took us a minute to open the valve
-          production: state.production + newProduction, // add production from opening valve
-          parentState: state, // where we came from, for tracking
-          action: `Minute ${state.minute}: open valve ${state.position} releasing ${flowRate} over ${minutes} for production ${newProduction} total ${state.production + newProduction}`,
-        }
-        enqueueState(newState)
-        // console.log(`    => ${getStateString(newState)}`)
-        if (newState.position === 'JJ' && newState.minute === 10 && newState.production === 1326) {
-          // console.log('statesProcessed: ', statesProcessed)
-          // console.log('new state added: ' + getStateString(newState))
-          // console.log('queue length: ', stateQueue.length)
-          window.stateQueue = [...stateQueue]
-          window.valves = valves
-          window.valvesById = valvesById
-          window.newState = newState
-        }
-        // this isn't getting processed for some reason:
-        // XXX  => JJ at 10: production 1326, closed: ["CC","EE","HH"]
-        // should move to HH and open HH at minute 17
-      } else {
-        // push new state from moving to the closed valve
-        const movementCost = valvesById[state.position].paths[closedValveId].cost
-        const newState = {
-          position: closedValveId, // moved to different valve that is closed
-          closed: [...state.closed], // not changing what valves are closed
-          minute: state.minute + movementCost, // takes us x minutes to move to new valve
-          production: state.production, // production not changed by moving
-          parentState: state, // where we came from, for tracking
-          action: `Minute ${state.minute}: move from ${state.position} to ${closedValveId} in ${movementCost} minute${movementCost !== 1 ? 's' : ''}`,
-        }
-        enqueueState(newState)
-        // console.log(`    => ${getStateString(newState)}`)
+      // for each closed valve, we move to it and open it and push that new state
+      // most possible states should be 6! * 6 for simple, or 4320
+      const movementCost = valvesById[state.position].paths[closedValveId]?.cost || 0
+      const newMinute = state.minute + movementCost + 1
+      if (newMinute > MINUTES) return
+      const addedProduction = valvesById[closedValveId].flowRate * Math.max(0, 30 - newMinute + 1)
+      const newState = {
+        position: closedValveId, // moved to different valve that is closed
+        closed: state.closed.filter(id => id !== closedValveId), // opening valve, so omit it
+        minute: newMinute, // takes us x minutes to move to new valve and 1 to open
+        production: state.production + addedProduction, // production adding production from opening valve
+        parentState: state, // where we came from, for tracking
+        action: `Minute ${state.minute}: move from ${state.position} to ${closedValveId} in ${movementCost} minute${movementCost !== 1 ? 's' : ''} adding ${addedProduction} to get ${state.production + addedProduction}`,
       }
+      enqueueState(newState)
     })
 
     statesProcessed++
   }
-
-  console.log('statesProcessed: ', statesProcessed)
-  console.log('queue length: ', stateQueue.length)
 
   const actions = []
   let st = bestState
@@ -145,7 +107,7 @@ export default input => {
     st = st.parentState
   }
   actions.forEach(a => console.log(a))
-  return bestState;
+  return bestState.production;
 }
 
 /* Explanation: Day 16 Part 1
