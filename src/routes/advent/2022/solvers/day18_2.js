@@ -21,6 +21,21 @@ export default input => {
     addAir(p,x+1,y,z)
     return p
   }, {})
+
+  // If we have a trapped cavity larger than 2x2, that would leave some
+  // air in the middle that isn't really exposed.  To counter that, 
+  // let's loop a few times to expand those internal airs:
+  for (let i = 0; i < 5; i++) {
+    Object.keys(air).forEach(airCube => {
+      let [x,y,z] = airCube.split(',').map(x => parseInt(x))
+      addAir(air,x,y,z-1)
+      addAir(air,x,y,z+1)
+      addAir(air,x,y-1,z)
+      addAir(air,x,y+1,z)
+      addAir(air,x-1,y,z)
+      addAir(air,x+1,y,z)
+    })
+  }
   const checkLava = (x,y,z) => lava[`${x},${y},${z}`]
   const checkAir = (x,y,z) => air[`${x},${y},${z}`]
   const countAdjacent = (x,y,z,fn) => {
