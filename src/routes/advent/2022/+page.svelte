@@ -26,14 +26,15 @@
     }
   })
 
-
   let inputText = ""
   let outputText = ""
+  let messageText = ""
 
   let days = $store.days
   let selectedDay = null
 
   const selectDay = day => {
+    messageText = ""
     inputText = ""
     outputText = ""
     selectedDay = day
@@ -45,15 +46,29 @@
     }
   }
 
-  const selectInput = text => inputText = text
+  const selectInput = text => {
+    inputText = text
+    messageText = ""
+  }
 
   const runSolver = fn => {
-    const result = fn(inputText.replaceAll(/\r/g, ''))
-    if (typeof(result) === 'string' || typeof(result) === 'number') {
-      outputText = `${result}`
-      return
+    messageText = ""
+    let start = window.performance.now()
+    try {
+      const result = fn(inputText.replaceAll(/\r/g, ''))
+      const ms = window.performance.now() - start
+      if (typeof(result) === 'string' || typeof(result) === 'number') {
+        outputText = `${result}`
+      } else {
+        outputText = JSON.stringify(result, null, 2)
+      }
+      messageText = `solved in ${ms.toFixed(1)} ms`
+    } catch (e) {
+      const ms = window.performance.now() - start
+      messageText = `error in ${ms.toFixed(1)} ms: ${e}`
+      throw e
     }
-    outputText = JSON.stringify(result, null, 2) }
+  }
 
   // doesn't work due to CORS
   // const fetchInput = async url => inputText = await fetch(url).then(x => x.text())
@@ -116,6 +131,9 @@
   </div>
   <div class="right-column">
     <textarea style="height: 200px" bind:value={ outputText }/>
+    {#if messageText.length > 0}
+    <p>{messageText}</p>
+    {/if}
   </div>
 </section>
 {/if}

@@ -58,12 +58,20 @@ export default input => {
     stateQueue.push(state)
   }
 
+  let lastQueueSize = 0
+
   while (stateQueue.length > 0) {
-    const state = stateQueue.shift()
+    let diff = stateQueue.length - lastQueueSize
+    if (Math.abs(diff) > 10000) {
+      console.log(`queue: ${stateQueue.length} is ${diff}`)
+    }
+    
+    // const state = stateQueue.shift()
+    const state = stateQueue.pop() // try popping first to keep queue length down
 
     if (state.production > bestState.production) bestState = state
 
-    if (state.minute <= (MINUTES - 2)) {
+    if (state.minute <= (MINUTES - 2) && state.minute <= state.minuteElephant) {
       // attempt to move ME
       state.closed.forEach(closedValveId => {
         // for each closed valve, we move to it and open it and push that new state
@@ -72,20 +80,22 @@ export default input => {
         const newMinute = state.minute + movementCost + 1
         if (newMinute > MINUTES) return
         const addedProduction = valvesById[closedValveId].flowRate * Math.max(0, MINUTES - newMinute + 1)
-        const newState = {
-          ...state,
-          position: closedValveId, // moved to different valve that is closed
-          closed: state.closed.filter(id => id !== closedValveId), // opening valve, so omit it
-          minute: newMinute, // takes us x minutes to move to new valve and 1 to open
-          production: state.production + addedProduction, // production adding production from opening valve
-          parentState: state, // where we came from, for tracking
-          action: `Minute ${state.minute}: move ME from ${state.position} to ${closedValveId} in ${movementCost} minute${movementCost !== 1 ? 's' : ''} adding ${addedProduction} to get ${state.production + addedProduction}`,
+        if (addedProduction) {
+          const newState = {
+            ...state,
+            position: closedValveId, // moved to different valve that is closed
+            closed: state.closed.filter(id => id !== closedValveId), // opening valve, so omit it
+            minute: newMinute, // takes us x minutes to move to new valve and 1 to open
+            production: state.production + addedProduction, // production adding production from opening valve
+            parentState: state, // where we came from, for tracking
+            action: `Minute ${state.minute}: move ME from ${state.position} to ${closedValveId} in ${movementCost} minute${movementCost !== 1 ? 's' : ''} adding ${addedProduction} to get ${state.production + addedProduction}`,
+          }
+          enqueueState(newState)
         }
-        enqueueState(newState)
       })
     }
 
-    if (USE_ELEPHANT && state.minuteElephant <= (MINUTES - 2)) {
+    if (USE_ELEPHANT && state.minuteElephant <= (MINUTES - 2) && state.minute > state.minuteElephant) {
       // attempt to move ELEPHANT
       state.closed.forEach(closedValveId => {
         // for each closed valve, we move to it and open it and push that new state
@@ -93,16 +103,18 @@ export default input => {
         const newMinute = state.minuteElephant + movementCost + 1
         if (newMinute > 30) return
         const addedProduction = valvesById[closedValveId].flowRate * Math.max(0, MINUTES - newMinute + 1)
-        const newState = {
-          ...state,
-          positionElephant: closedValveId, // moved to different valve that is closed
-          closed: state.closed.filter(id => id !== closedValveId), // opening valve, so omit it
-          minuteElephant: newMinute, // takes us x minutes to move to new valve and 1 to open
-          production: state.production + addedProduction, // production adding production from opening valve
-          parentState: state, // where we came from, for tracking
-          action: `Minute ${state.minute}: move ELEPHANT from ${state.position} to ${closedValveId} in ${movementCost} minute${movementCost !== 1 ? 's' : ''} adding ${addedProduction} to get ${state.production + addedProduction}`,
+        if (addedProduction) {
+          const newState = {
+            ...state,
+            positionElephant: closedValveId, // moved to different valve that is closed
+            closed: state.closed.filter(id => id !== closedValveId), // opening valve, so omit it
+            minuteElephant: newMinute, // takes us x minutes to move to new valve and 1 to open
+            production: state.production + addedProduction, // production adding production from opening valve
+            parentState: state, // where we came from, for tracking
+            action: `Minute ${state.minute}: move ELEPHANT from ${state.position} to ${closedValveId} in ${movementCost} minute${movementCost !== 1 ? 's' : ''} adding ${addedProduction} to get ${state.production + addedProduction}`,
+          }
+          enqueueState(newState)
         }
-        enqueueState(newState)
       })
     }
   }
