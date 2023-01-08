@@ -81,7 +81,8 @@ export default input => {
   //   show(pieces[i])
   // }
 
-  const PIECE_COUNT = 2022
+  const PIECE_COUNT = 2022 // part 1
+  //const PIECE_COUNT = 10000000000 // part 2
 
   const conflictAt = (index, piece) => {
     return piece.reduce((p, c, i) => {

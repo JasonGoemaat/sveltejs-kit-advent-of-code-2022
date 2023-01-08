@@ -87,6 +87,7 @@ import solve16_1 from './solvers/day16_1'
 import solve16_2 from './solvers/day16_2'
 import solve17_1 from './solvers/day17_1'
 import solve17_2 from './solvers/day17_2'
+import solve17_2b from './solvers/day17_2b'
 import solve18_1 from './solvers/day18_1'
 import solve18_2 from './solvers/day18_2'
 import solve19_1 from './solvers/day19_1'
@@ -333,6 +334,7 @@ export const store = readable({
       solvers: [
         { description: 'Part 1', solver: solve17_1 },
         { description: 'Part 2', solver: solve17_2 },
+        { description: 'Part 2b', solver: solve17_2b },
       ]
     },
       {

@@ -6,6 +6,8 @@ export default input => {
 
   // let PIECE_COUNT = 2022 // part 1
   let PIECE_COUNT = 1000000000000 // part 2
+  // NOTE: first attempt without pre-populating the tower was too high: 1586206896526
+  // now I get:                                                         1586206896526
 
   let windIndex = 0;
 
@@ -106,40 +108,48 @@ export default input => {
       if (conflictAt(dropIndex-1, piece)) break // if dropping would hit something, exit
       dropIndex--
     }
-  }
 
-  // Keep track of wind index after dropping a piece so we know when
-  // we've moved past the end of the wind array.
-  let lastWindIndex = Number.MAX_SAFE_INTEGER
-
-  // Track pieceIndex and windIndex of the first dropped piece for each cycle through the winds array.
-  let firstDropInfos = []
-
-  for (let pieceCount = 0; pieceCount < Math.min(PIECE_COUNT, REPEAT_LENGTH * 2); pieceCount++) {
-    let piece = pieces[pieceCount % pieces.length]
-    dropPiece(piece)
-    
-    piecesNextWinds[pieceCount % pieces.length].push(windIndex)
     piece.forEach((value, i) => {
       chamber[dropIndex + i] |= value
     })
     fillChamber()
-
-    if (windIndex < lastWindIndex) {
-      // we just dropped the first piece from a wind cycle
-      let firstDropInfo = {
-        pieceDropped: pieceCount % pieces.length,
-        height: chamber.length - 8,
-        windIndex,
-        pieceCount
-      }
-      console.log(JSON.stringify(firstDropInfo))
-    }
-    lastWindIndex = windIndex
   }
 
-  window.pnw = piecesNextWinds
-  return chamber.length - 8
+  // key will be `'${pieceIndex},${windIndex}'`.   When we find
+  // a match, we've found a cycle.  Value will be `{ pieceCount, height }`.
+  // By taking '(current pieceCount) - (saved pieceCount)' we get how many
+  // pieces in the cycle, and by taking '(current height) - (saved height)'
+  // we get how much height is added by the cycle.  Then we can add a multiple
+  // of each to pieceCount and height to skip a whole lot.  We do this by
+  // setting 'addedHeight' and increasing pieceCount
+  const heights = {}
+  let addedHeight = 0
+
+  for (let pieceCount = 0; pieceCount < PIECE_COUNT; pieceCount++) {
+    let pieceIndex = pieceCount % pieces.length
+    let piece = pieces[pieceIndex]
+    dropPiece(piece)
+    if ((addedHeight === 0) && (pieceCount > (winds.length * 2))) {
+      let key = `${pieceIndex},${windIndex}`
+      let info = { pieceCount, height: getTowerHeight() }
+      if (heights[key]) {
+        // we found a cycle, hurray!
+        let cyclePieces = info.pieceCount - heights[key].pieceCount
+        let cycleHeight = info.height - heights[key].height
+        console.log(`Found cycle ${key} of ${cyclePieces} pieces giving height ${cycleHeight}`)
+        console.log(`  Previous: ${JSON.stringify(heights[key])}`)
+        console.log(`  Current : ${JSON.stringify(info)}`)
+
+        let cycles = Math.trunc((PIECE_COUNT - pieceCount) / cyclePieces)
+        addedHeight = cycleHeight * cycles
+        pieceCount += cyclePieces * cycles
+      } else {
+        heights[key] = info
+      }
+    }
+  }
+
+  return getTowerHeight() + addedHeight
 }
 
 /* Explanation: Day 17 Part 2
