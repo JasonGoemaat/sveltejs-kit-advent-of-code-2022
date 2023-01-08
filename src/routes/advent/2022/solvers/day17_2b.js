@@ -129,7 +129,7 @@ export default input => {
     let pieceIndex = pieceCount % pieces.length
     let piece = pieces[pieceIndex]
     dropPiece(piece)
-    if ((addedHeight === 0) && (pieceCount > (winds.length * 2))) {
+    if ((addedHeight === 0) && (pieceCount > (winds.length * pieces.length))) {
       let key = `${pieceIndex},${windIndex}`
       let info = { pieceCount, height: getTowerHeight() }
       if (heights[key]) {
